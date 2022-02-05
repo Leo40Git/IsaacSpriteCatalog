@@ -47,22 +47,24 @@ if (win32) {
         copySteamApiRTLib.files += $${STEAMWORKS_SDK_ROOT}/redistributable_bin/steam_api.dll
     }
 } else {
-    if (unix) {
-        # The Steamworks SDK download doesn't contain .a files for these two
-        contains(QT_ARCH, x86_64) {
-            # Unix, 64-bit
-            message("Unix 64-bit - using libsteam_api.so")
-            copySteamApiRTLib.files += $${STEAMWORKS_SDK_ROOT}/redistributable_bin/linux64/libsteam_api.so
-        } else {
-            # Unix, 32-bit
-            message("Unix 32-bit - using steam_api.dll")
-            copySteamApiRTLib.files += $${STEAMWORKS_SDK_ROOT}/redistributable_bin/linux32/libsteam_api.so
-        }
+    if (macx) {
+        # Mac OSX
+        message("Mac OSX - using libsteam_api.dylib")
+        LIBS += -L"$${STEAMWORKS_SDK_ROOT}/redistributable_bin/macosx" -lsteam_api
+        copySteamApiRTLib.files += $${STEAMWORKS_SDK_ROOT}/redistributable_bin/osx/libsteam_api.dylib)
     } else {
-        if (macx) { # (no idea if this is the correct check...)
-            # Mac OSX
-            message("Mac OSX - using libsteam_api.dylib")
-            copySteamApiRTLib.files += $${STEAMWORKS_SDK_ROOT}/redistributable_bin/osx/libsteam_api.dylib)
+        if (unix) {
+            contains(QT_ARCH, x86_64) {
+                # Unix, 64-bit
+                message("Unix 64-bit - using libsteam_api.so")
+                LIBS += -L"$${STEAMWORKS_SDK_ROOT}/redistributable_bin/linux64" -lsteam_api
+                copySteamApiRTLib.files += $${STEAMWORKS_SDK_ROOT}/redistributable_bin/linux64/libsteam_api.so
+            } else {
+                # Unix, 32-bit
+                message("Unix 32-bit - using libsteam_api.so")
+                LIBS += -L"$${STEAMWORKS_SDK_ROOT}/redistributable_bin/linux32" -lsteam_api
+                copySteamApiRTLib.files += $${STEAMWORKS_SDK_ROOT}/redistributable_bin/linux32/libsteam_api.so
+            }
         } else {
             error("Steam API isn't supported on this system!")
         }
