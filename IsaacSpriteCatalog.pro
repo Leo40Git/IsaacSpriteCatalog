@@ -14,7 +14,8 @@ SOURCES += \
 
 HEADERS += \
     mainwindow.h \
-    steam_api_ext.h
+    steam_api_ext.h \
+    utils.h
 
 FORMS += \
     mainwindow.ui
