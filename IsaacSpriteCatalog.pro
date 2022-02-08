@@ -9,16 +9,15 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    main.cpp \
-    mainwindow.cpp
+    initwindow.cpp \
+    main.cpp
 
 HEADERS += \
-    mainwindow.h \
-    steam_api_ext.h \
-    utils.h
+    initwindow.h \
+    isaac.h
 
 FORMS += \
-    mainwindow.ui
+    initwindow.ui
 
 TRANSLATIONS += \
     IsaacSpriteCatalog_en_US.ts
@@ -29,7 +28,6 @@ CONFIG += embed_translations
 CONFIG += file_copies
 COPIES += copySteamApiRTLib
 copySteamApiRTLib.path = $$OUT_PWD
-copySteamApiRTLib.files += steam_appid.txt
 
 STEAMWORKS_SDK_ROOT = C:/SteamworksSDK
 INCLUDEPATH += $${STEAMWORKS_SDK_ROOT}/public
