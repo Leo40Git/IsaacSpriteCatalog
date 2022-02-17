@@ -65,6 +65,9 @@ void InitWindow::doInit()
         steamAppidFile.close();
     }
 
+    // SteamAPI_Init() takes a minute to execute, so let's update the UI before that happens
+    qApp->processEvents();
+
     // spin up Steam API
     if (SteamAPI_Init()) {
         log(tr("SteamAPI_Init() returned true"));
@@ -84,8 +87,8 @@ void InitWindow::doInit()
 
         // get Isaac's install path
         QByteArray installPathBuf(512, 0);
-        apps->GetAppInstallDir(APPID, installPathBuf.data(), installPathBuf.size());
-        Isaac_InstallPath = QString(installPathBuf);
+        quint32 installPathLen = apps->GetAppInstallDir(APPID, installPathBuf.data(), installPathBuf.size());
+        Isaac_InstallPath = QDir::cleanPath(QString::fromLocal8Bit(installPathBuf.data(), installPathLen));
 
         // check Rep too, while we're here
         Isaac_IsRepentanceInstalled = apps->BIsDlcInstalled(DLCID_REPENTANCE);
@@ -99,10 +102,33 @@ void InitWindow::doInit()
                                  " - it is logged into an account that owns The Binding of Isaac: Rebirth"));
         // can't be bothered to support non-Steam copies, sorry not sorry
         QApplication::exit(1);
+        return;
     }
 
-    log(tr("Game is installed to %1").arg(Isaac_InstallPath));
+    log(tr("Game is installed to \"%1\"").arg(Isaac_InstallPath));
     log(Isaac_IsRepentanceInstalled ? tr("Repentance is installed") : tr("Repentance is NOT installed"));
 
-    // TODO extract resources if they haven't been extracted yet
+    ui->label->setText("Extracting resources...");
+
+    // check if resources have already been extracted
+    QDir resourcesDir(Isaac_InstallPath);
+    if (!resourcesDir.cd("resources")) {
+        log(tr("Couldn't find resources directory at \"%1/resources\"").arg(resourcesDir.absolutePath()));
+        QMessageBox::critical(this,
+                              tr("Failed to extract resources"),
+                              tr("The \"resources\" directory doesn't exist!\n"
+                                 "Verify the integrity of the game files and try again."));
+        QApplication::exit(1);
+        return;
+    }
+
+    QStringList nameFilters;
+    nameFilters << "!(packed)" << "!(scripts)";
+    QStringList entries = resourcesDir.entryList(nameFilters, QDir::Dirs);
+
+    if (entries.isEmpty()) {
+        QMessageBox::information(this,
+                                 tr("Extracting resources"),
+                                 tr("doing the thing aaa"));
+    }
 }
