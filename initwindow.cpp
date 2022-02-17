@@ -73,25 +73,6 @@ void InitWindow::doInit()
         log(tr("SteamAPI_Init() returned true"));
         // make sure we shutdown Steam API on our way out
         connect(qApp, &QApplication::aboutToQuit, qApp, SteamAPI_Shutdown);
-
-        ISteamApps *apps = SteamApps();
-
-        // ensure AB+ is installed, otherwise we'd just be wasting everyone's time
-        if (!apps->BIsDlcInstalled(DLCID_AFTERBIRTH_PLUS)) {
-            QMessageBox::critical(this,
-                                  tr("Afterbirth+ is not installed"),
-                                  tr("The Afterbirth+ DLC is not installed!\n"
-                                     "This DLC is required for mod support."));
-            QApplication::exit(1);
-        }
-
-        // get Isaac's install path
-        QByteArray installPathBuf(512, 0);
-        quint32 installPathLen = apps->GetAppInstallDir(APPID, installPathBuf.data(), installPathBuf.size());
-        Isaac_InstallPath = QDir::cleanPath(QString::fromLocal8Bit(installPathBuf.data(), installPathLen));
-
-        // check Rep too, while we're here
-        Isaac_IsRepentanceInstalled = apps->BIsDlcInstalled(DLCID_REPENTANCE);
     } else {
         log(tr("SteamAPI_Init() returned false"));
         QMessageBox::critical(this,
@@ -105,30 +86,62 @@ void InitWindow::doInit()
         return;
     }
 
-    log(tr("Game is installed to \"%1\"").arg(Isaac_InstallPath));
-    log(Isaac_IsRepentanceInstalled ? tr("Repentance is installed") : tr("Repentance is NOT installed"));
+    ISteamApps *apps = SteamApps();
 
-    ui->label->setText("Extracting resources...");
-
-    // check if resources have already been extracted
-    QDir resourcesDir(Isaac_InstallPath);
-    if (!resourcesDir.cd("resources")) {
-        log(tr("Couldn't find resources directory at \"%1/resources\"").arg(resourcesDir.absolutePath()));
+    // ensure Rebirth is actually installed
+    if (!apps->BIsAppInstalled(APPID)) {
         QMessageBox::critical(this,
-                              tr("Failed to extract resources"),
-                              tr("The \"resources\" directory doesn't exist!\n"
-                                 "Verify the integrity of the game files and try again."));
+                              tr("Rebirth is not installed"),
+                              tr("The Binding of Isaac: Rebirth is not installed!"));
         QApplication::exit(1);
         return;
     }
 
-    QStringList nameFilters;
-    nameFilters << "!(packed)" << "!(scripts)";
-    QStringList entries = resourcesDir.entryList(nameFilters, QDir::Dirs);
+    // ensure AB+ is installed, otherwise we'd just be wasting everyone's time
+    if (!apps->BIsDlcInstalled(DLCID_AFTERBIRTH_PLUS)) {
+        QMessageBox::critical(this,
+                              tr("Afterbirth+ is not installed"),
+                              tr("The Afterbirth+ DLC is not installed!\n"
+                                 "This DLC is required for mod support."));
+        QApplication::exit(1);
+        return;
+    }
 
-    if (entries.isEmpty()) {
-        QMessageBox::information(this,
-                                 tr("Extracting resources"),
-                                 tr("doing the thing aaa"));
+    // get Isaac's install path
+    QByteArray installPathBuf(512, 0);
+    quint32 installPathLen = apps->GetAppInstallDir(APPID, installPathBuf.data(), installPathBuf.size());
+    Isaac_InstallPath = QDir::cleanPath(QString::fromLocal8Bit(installPathBuf.data(), installPathLen));
+
+    // check Rep too, while we're here
+    Isaac_IsRepentanceInstalled = apps->BIsDlcInstalled(DLCID_REPENTANCE);
+
+    log(tr("Game is installed to \"%1\"").arg(Isaac_InstallPath));
+    log(Isaac_IsRepentanceInstalled ? tr("Repentance is installed") : tr("Repentance is NOT installed"));
+
+    // FIXME check if this is first run, skip this message box if it isn't
+    {
+        // pause to let user extract resources, because I can't be bothered to actually program a check for this
+        // (and I don't want to inflate the package size/get sued by Nicalis for just including all the resources myself)
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle(tr("Make sure resources are extracted!"));
+        msgBox.setTextFormat(Qt::RichText);
+        msgBox.setText(
+                       tr("Please check that the game's resources are extracted.<br>"
+                          "To extract resources, "
+                      #if defined(Q_OS_WIN)
+                          "run the <code>ResourceExtractor.exe</code> program,<br>"
+                          "which can be <a href=\"file:///%1/tools/ResourceExtractor\">found here</a>.<br>"
+                      #elif defined(Q_OS_MACOSX)
+                          "read the <code>Instructions.txt</code> file,<br>"
+                          "which can be <a href=\"file:///%1/tools/ResourceExtractor/macOS\">found here</a>.<br>"
+                      #elif defined(Q_OS_LINUX)
+                          "run the <code>resource_extractor</code> program,<br>"
+                          "which can be <a href=\"%1/tools/ResourceExtractor/Linux\">found here</a>.<br>"
+                      #else
+                          "(no instructions for this platform!)<br>"
+                      #endif
+                          "Press the \"OK\" button after extraction is finished."
+                          ).arg(Isaac_InstallPath));
+        msgBox.exec();
     }
 }
